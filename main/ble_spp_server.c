@@ -13,33 +13,103 @@
 
 #include "ble_spp_server.h"
 #include "gap.h"
+#include "gatt.h"
+
+#define ESP_MAIN_TAG "ESP_START"
 
 void app_main(void)
 {
+    esp_err_t error;
+
+    ESP_LOGE(ESP_MAIN_TAG, "NVS init");
     // Initialize NVS.
-    nvs_flash_init();
+    error = nvs_flash_init();
+    if (error == ESP_OK)
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "NVS init successful");
+    }
+    else
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "NVS init unsuccessful");
+    }
 
     // Bluetooth controller initialization with default config.
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    esp_bt_controller_init(&bt_cfg);
+    error = esp_bt_controller_init(&bt_cfg);
+    if (error == ESP_OK)
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Controller init successful");
+    }
+    else
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Controller init unsuccessful");
+    }
 
     // Turning on the controller in ble mode.
-    esp_bt_controller_enable(ESP_BT_MODE_BLE);
+    error = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+    if (error == ESP_OK)
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Controller turn on in ble mode successful");
+    }
+    else
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Controller turn on in ble mode unsuccessful");
+    }
 
     // Init and alloc the resource for bluetooth.
-    esp_bluedroid_init();
+    error = esp_bluedroid_init();
+    if (error == ESP_OK)
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Bluedroid init successful");
+    }
+    else
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Bluedroid init unsuccessful");
+    }
 
     // Enables the BlueDroid Bluetooth stack after it initializes.
-    esp_bluedroid_enable();
+    error = esp_bluedroid_enable();
+    if (error == ESP_OK)
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Bluedroid enable stack successful");
+    }
+    else
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Bluedroid enable stack unsuccessful");
+    }
 
-    // // Registering a function that supports gatt.
-    // esp_ble_gatts_register_callback(gatts_event_handler);
+    // Registering a function that supports gatt.
+    error = esp_ble_gatts_register_callback(gatts_event_handler);
+    if (error == ESP_OK)
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Gatt handle registration successful");
+    }
+    else
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Gatt handle registration unsuccessful");
+    }
 
     // Registers a gap handling function.
-    esp_ble_gap_register_callback(gap_event_handler);
+    error = esp_ble_gap_register_callback(gap_event_handler);
+    if (error == ESP_OK)
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Gap handle registration successful");
+    }
+    else
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Gap handle registration unsuccessful");
+    }
 
     // // Gatt application registration.
-    // esp_ble_gatts_app_register(ESP_SPP_APP_ID);
+    // error = esp_ble_gatts_app_register(ESP_SPP_APP_ID);
+    // if (error == ESP_OK)
+    // {
+    //     ESP_LOGE(ESP_MAIN_TAG, "Gatt app registration successful");
+    // }
+    // else
+    // {
+    //     ESP_LOGE(ESP_MAIN_TAG, "Gatt app registration unsuccessful");
+    // }
 
     // // Task initialization SPP.
     // spp_task_init();
