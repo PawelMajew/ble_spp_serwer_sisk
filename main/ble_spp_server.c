@@ -108,19 +108,19 @@ void app_main(void)
         ESP_LOGE(ESP_MAIN_TAG, "Gap handle registration unsuccessful");
     }
 
-    // // Gatt application registration.
-    // error = esp_ble_gatts_app_register(ESP_SPP_APP_ID);
-    // if (error == ESP_OK)
-    // {
-    //     ESP_LOGE(ESP_MAIN_TAG, "Gatt app registration successful");
-    // }
-    // else
-    // {
-    //     ESP_LOGE(ESP_MAIN_TAG, "Gatt app registration unsuccessful");
-    // }
+    // Gatt application registration.
+    error = esp_ble_gatts_app_register(ESP_SPP_APP_ID);
+    if (error == ESP_OK)
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Gatt app registration successful");
+    }
+    else
+    {
+        ESP_LOGE(ESP_MAIN_TAG, "Gatt app registration unsuccessful");
+    }
 
-    // // Task initialization SPP.
-    // spp_task_init();
+    // Task initialization SPP.
+    spp_task_init();
 
     return;
 }

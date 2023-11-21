@@ -30,9 +30,96 @@ static struct gatts_profile_inst spp_profile_tab[SPP_PROFILE_NUM] = {
     },
 };
 
+// Service Declaration
+static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
+static const uint16_t spp_service_uuid = 0xABF0;
+
+// SPP -  data receive characteristic Declaration
+static const uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
+static const uint8_t char_prop_read_write = ESP_GATT_CHAR_PROP_BIT_WRITE_NR|ESP_GATT_CHAR_PROP_BIT_READ;
+
+//SPP -  data receive characteristic Value
+static const uint16_t spp_data_receive_uuid = ESP_GATT_UUID_SPP_DATA_RECEIVE;
+static const uint8_t  spp_data_receive_val[20] = {0x00};
+
+// SPP -  data notify characteristic Declaration
+static const uint8_t char_prop_read_notify = ESP_GATT_CHAR_PROP_BIT_READ|ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+
+// SPP -  data notify characteristic Value
+static const uint16_t spp_data_notify_uuid = ESP_GATT_UUID_SPP_DATA_NOTIFY;
+static const uint8_t  spp_data_notify_val[20] = {0x00};
+
+// SPP -  data notify characteristic - Client Characteristic Configuration Descriptor
+static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+static const uint8_t  spp_data_notify_ccc[2] = {0x00, 0x00};
+
+// SPP -  command characteristic Value
+static const uint16_t spp_command_uuid = ESP_GATT_UUID_SPP_COMMAND_RECEIVE;
+static const uint8_t  spp_command_val[10] = {0x00};
+
+// SPP -  status characteristic Value
+static const uint16_t spp_status_uuid = ESP_GATT_UUID_SPP_COMMAND_NOTIFY;
+static const uint8_t  spp_status_val[10] = {0x00};
+
+// SPP -  status characteristic - Client Characteristic Configuration Descriptor
+static const uint8_t  spp_status_ccc[2] = {0x00, 0x00};
+
 static const esp_gatts_attr_db_t spp_gatt_db[SPP_IDX_NB] =
 {
-//TODO
+    // SPP -  Service Declaration
+    [SPP_IDX_SVC]                      	=
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ,
+    sizeof(spp_service_uuid), sizeof(spp_service_uuid), (uint8_t *)&spp_service_uuid}},
+
+    // SPP -  data receive characteristic Declaration
+    [SPP_IDX_SPP_DATA_RECV_CHAR]            =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE,CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_write}},
+
+    // SPP -  data receive characteristic Value
+    [SPP_IDX_SPP_DATA_RECV_VAL]             	=
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&spp_data_receive_uuid, ESP_GATT_PERM_READ|ESP_GATT_PERM_WRITE,
+    SPP_DATA_MAX_LEN,sizeof(spp_data_receive_val), (uint8_t *)spp_data_receive_val}},
+
+    // SPP -  data notify characteristic Declaration
+    [SPP_IDX_SPP_DATA_NOTIFY_CHAR]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE,CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_notify}},
+
+    // SPP -  data notify characteristic Value
+    [SPP_IDX_SPP_DATA_NTY_VAL]   =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&spp_data_notify_uuid, ESP_GATT_PERM_READ,
+    SPP_DATA_MAX_LEN, sizeof(spp_data_notify_val), (uint8_t *)spp_data_notify_val}},
+
+    // SPP -  data notify characteristic - Client Characteristic Configuration Descriptor
+    [SPP_IDX_SPP_DATA_NTF_CFG]         =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ|ESP_GATT_PERM_WRITE,
+    sizeof(uint16_t),sizeof(spp_data_notify_ccc), (uint8_t *)spp_data_notify_ccc}},
+
+    // SPP -  command characteristic Declaration
+    [SPP_IDX_SPP_COMMAND_CHAR]            =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE,CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_write}},
+
+    // SPP -  command characteristic Value
+    [SPP_IDX_SPP_COMMAND_VAL]                 =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&spp_command_uuid, ESP_GATT_PERM_READ|ESP_GATT_PERM_WRITE,
+    SPP_CMD_MAX_LEN,sizeof(spp_command_val), (uint8_t *)spp_command_val}},
+
+    // SPP -  status characteristic Declaration
+    [SPP_IDX_SPP_STATUS_CHAR]            =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE,CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_notify}},
+
+    // SPP -  status characteristic Value
+    [SPP_IDX_SPP_STATUS_VAL]                 =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&spp_status_uuid, ESP_GATT_PERM_READ,
+    SPP_STATUS_MAX_LEN,sizeof(spp_status_val), (uint8_t *)spp_status_val}},
+
+    // SPP -  status characteristic - Client Characteristic Configuration Descriptor
+    [SPP_IDX_SPP_STATUS_CFG]         =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ|ESP_GATT_PERM_WRITE,
+    sizeof(uint16_t),sizeof(spp_status_ccc), (uint8_t *)spp_status_ccc}},
 };
 
 static const uint8_t spp_adv_data[19] = {
@@ -63,6 +150,17 @@ static esp_ble_adv_params_t spp_adv_params = {
     .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
 };
 
+static spp_receive_data_node_t * temp_spp_recv_data_node_p1 = NULL;
+static spp_receive_data_node_t * temp_spp_recv_data_node_p2 = NULL;
+
+static spp_receive_data_buff_t SppRecvDataBuff = {
+    .node_num   = 0,
+    .buff_size  = 0,
+    .first_node = NULL
+};
+
+QueueHandle_t spp_uart_queue = NULL;
+
 ///////////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////////////
@@ -80,20 +178,73 @@ static uint8_t find_char_and_desr_index(uint16_t handle)
     return error;
 }
 
-static bool store_wr_buffer(esp_ble_gatts_cb_param_t *p_data)
+static bool store_wr_buffer(esp_ble_gatts_cb_param_t *p_param)
 {
-    //TODO
+    temp_spp_recv_data_node_p1 = (spp_receive_data_node_t *)malloc(sizeof(spp_receive_data_node_t));
+    if (temp_spp_recv_data_node_p1 == NULL)
+    {
+        ESP_LOGI(GATT_TAG, "Malloc failed.");
+        return false;
+    }
+
+    if (temp_spp_recv_data_node_p2 != NULL)
+    {
+        temp_spp_recv_data_node_p2->next_node = temp_spp_recv_data_node_p1;
+    }
+    temp_spp_recv_data_node_p1->len = p_param->write.len;
+    SppRecvDataBuff.buff_size += p_param->write.len;
+    temp_spp_recv_data_node_p1->next_node = NULL;
+    temp_spp_recv_data_node_p1->node_buff = (uint8_t *)malloc(p_param->write.len);
+    temp_spp_recv_data_node_p2 = temp_spp_recv_data_node_p1;
+    if (temp_spp_recv_data_node_p1->node_buff == NULL)
+    {
+        ESP_LOGI(GATT_TAG, "Malloc failed.");
+        temp_spp_recv_data_node_p1->len = 0;
+    }
+    else
+    {
+        memcpy(temp_spp_recv_data_node_p1->node_buff, p_param->write.value, p_param->write.len);
+    }
+    
+    if (SppRecvDataBuff.node_num == 0)
+    {
+        SppRecvDataBuff.first_node = temp_spp_recv_data_node_p1;
+        SppRecvDataBuff.node_num++;
+    }
+    else
+    {
+        SppRecvDataBuff.node_num++;
+    }
+
     return true;
 }
 
 static void print_write_buffer(void)
 {
+    temp_spp_recv_data_node_p1 = SppRecvDataBuff.first_node;
 
+    while(temp_spp_recv_data_node_p1 != NULL){
+        uart_write_bytes(UART_NUM_0, (char *)(temp_spp_recv_data_node_p1->node_buff), temp_spp_recv_data_node_p1->len);
+        temp_spp_recv_data_node_p1 = temp_spp_recv_data_node_p1->next_node;
+    }
 }
 
 static void free_write_buffer(void)
 {
+    temp_spp_recv_data_node_p1 = SppRecvDataBuff.first_node;
 
+    while(temp_spp_recv_data_node_p1 != NULL){
+        temp_spp_recv_data_node_p2 = temp_spp_recv_data_node_p1->next_node;
+        if (temp_spp_recv_data_node_p1->node_buff) {
+            free(temp_spp_recv_data_node_p1->node_buff);
+        }
+        free(temp_spp_recv_data_node_p1);
+        temp_spp_recv_data_node_p1 = temp_spp_recv_data_node_p2;
+    }
+
+    SppRecvDataBuff.node_num = 0;
+    SppRecvDataBuff.buff_size = 0;
+    SppRecvDataBuff.first_node = NULL;
 }
 
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
@@ -245,6 +396,127 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     }
 }
 
+static void uart_task(void *pvParameters)
+{
+    uart_event_t event;
+    uint8_t total_num = 0;
+    uint8_t current_num = 0;
+
+    for (;;) {
+        //Waiting for UART event.
+        if (xQueueReceive(spp_uart_queue, (void * )&event, (TickType_t)portMAX_DELAY)) 
+        {
+            switch (event.type) 
+            {
+            //Event of UART receving data
+            case UART_DATA:
+                if ((event.size)&&(is_con)) 
+                {
+                    uint8_t * temp = NULL;
+                    uint8_t * ntf_value_p = NULL;
+
+                    if(!enable_data_ntf)
+                    {
+                        ESP_LOGE(SPP_TAG, "Notify do not enable.");
+                        break;
+                    }
+                    temp = (uint8_t *)malloc(sizeof(uint8_t) * event.size);
+                    if(temp == NULL)
+                    {
+                        ESP_LOGE(SPP_TAG, "Malloc failed.");
+                        break;
+                    }
+                    memset(temp,0x0,event.size);
+                    uart_read_bytes(UART_NUM_0,temp,event.size,portMAX_DELAY);
+                    if(event.size <= (spp_mtu_size - 3))
+                    {
+                        esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL],event.size, temp, false);
+                    }else if(event.size > (spp_mtu_size - 3))
+                    {
+                        if((event.size%(spp_mtu_size - 7)) == 0)
+                        {
+                            total_num = event.size / (spp_mtu_size - 7);
+                        }else
+                        {
+                            total_num = event.size / (spp_mtu_size - 7) + 1;
+                        }
+                        current_num = 1;
+                        ntf_value_p = (uint8_t *)malloc((spp_mtu_size - 3) * sizeof(uint8_t));
+                        if(ntf_value_p == NULL)
+                        {
+                            ESP_LOGE(SPP_TAG, "Malloc failed.");
+                            free(temp);
+                            break;
+                        }
+                        while(current_num <= total_num)
+                        {
+                            if(current_num < total_num)
+                            {
+                                ntf_value_p[0] = '#';
+                                ntf_value_p[1] = '#';
+                                ntf_value_p[2] = total_num;
+                                ntf_value_p[3] = current_num;
+                                memcpy(ntf_value_p + 4,temp + (current_num - 1) * (spp_mtu_size - 7), (spp_mtu_size - 7));
+                                esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL], (spp_mtu_size-3), ntf_value_p, false);
+                            }else if(current_num == total_num)
+                            {
+                                ntf_value_p[0] = '#';
+                                ntf_value_p[1] = '#';
+                                ntf_value_p[2] = total_num;
+                                ntf_value_p[3] = current_num;
+                                memcpy(ntf_value_p + 4,temp + (current_num - 1) * (spp_mtu_size - 7), (event.size - (current_num - 1) * (spp_mtu_size - 7)));
+                                esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL], (event.size - (current_num - 1) * (spp_mtu_size - 7) + 4), ntf_value_p, false);
+                            }
+                            vTaskDelay(20 / portTICK_PERIOD_MS);
+                            current_num++;
+                        }
+                        free(ntf_value_p);
+                    }
+                    free(temp);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    vTaskDelete(NULL);
+}
+
+static void spp_uart_init(void)
+{
+    uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_RTS,
+        .rx_flow_ctrl_thresh = 122,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+
+    //Install UART driver, and get the queue.
+    uart_driver_install(UART_NUM_0, 4096, 8192, 10, &spp_uart_queue, 0);
+    //Set UART parameters
+    uart_param_config(UART_NUM_0, &uart_config);
+    //Set UART pins
+    uart_set_pin(UART_NUM_0, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    xTaskCreate(uart_task, "uTask", 2048, (void*)UART_NUM_0, 8, NULL);
+}
+
+static void spp_cmd_task(void * arg)
+{
+    uint8_t * cmd_id;
+
+    for(;;){
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+        if(xQueueReceive(cmd_cmd_queue, &cmd_id, portMAX_DELAY)) {
+            esp_log_buffer_char(SPP_TAG, (char*)(cmd_id), strlen((char*)cmd_id));
+            free(cmd_id);
+        }
+    }
+    vTaskDelete(NULL);
+}
 ///////////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////////////
@@ -330,4 +602,11 @@ void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp
             }
         }
     }
+}
+
+void spp_task_init(void)
+{
+    spp_uart_init();
+    cmd_cmd_queue = xQueueCreate(10, sizeof(uint32_t));
+    xTaskCreate(spp_cmd_task, "spp_cmd_task", 2048, NULL, 10, NULL);
 }
