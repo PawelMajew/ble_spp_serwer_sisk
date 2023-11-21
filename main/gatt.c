@@ -122,7 +122,7 @@ static const esp_gatts_attr_db_t spp_gatt_db[SPP_IDX_NB] =
     sizeof(uint16_t),sizeof(spp_status_ccc), (uint8_t *)spp_status_ccc}},
 };
 
-static const uint8_t spp_adv_data[19] = {
+static const uint8_t spp_adv_data[23] = {
     /* Flags */
     0x02,0x01,0x06,
     /* Complete List of 16-bit Service Class UUIDs */
