@@ -34,17 +34,18 @@
 ///////////////////////////////////////////////////////////////////////////////////
 // PRAMETERS
 ///////////////////////////////////////////////////////////////////////////////////
-#define spp_sprintf(s,...)         sprintf((char*)(s), ##__VA_ARGS__)
 #define SPP_DATA_MAX_LEN           (512)
 #define SPP_CMD_MAX_LEN            (20)
 #define SPP_STATUS_MAX_LEN         (20)
-#define SPP_DATA_BUFF_MAX_LEN      (2*1024)
 
 ///////////////////////////////////////////////////////////////////////////////////
 // DATA
 ///////////////////////////////////////////////////////////////////////////////////
 
-///Attributes State Machine
+/*
+    Enumeration defining indices for attributes in the Serial Port Profile (SPP).
+    Used to identify different characteristics and values in the SPP profile.
+*/
 enum{
     SPP_IDX_SVC,
 

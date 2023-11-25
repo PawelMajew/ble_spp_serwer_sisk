@@ -14,21 +14,8 @@
 #include "gatt.h"
 
 ///////////////////////////////////////////////////////////////////////////////////
-// DEKLARATION LOCAL FUNCTIONS
-///////////////////////////////////////////////////////////////////////////////////
-
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
-
-///////////////////////////////////////////////////////////////////////////////////
 // LOCAL DATA
 ///////////////////////////////////////////////////////////////////////////////////
-
-static struct gatts_profile_inst spp_profile_tab[SPP_PROFILE_NUM] = {
-    [SPP_PROFILE_APP_IDX] = {
-        .gatts_cb = gatts_profile_event_handler,
-        .gatts_if = ESP_GATT_IF_NONE,
-    },
-};
 
 // Service Declaration
 static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
@@ -64,6 +51,13 @@ static const uint8_t  spp_status_val[10] = {0x00};
 // SPP -  status characteristic - Client Characteristic Configuration Descriptor
 static const uint8_t  spp_status_ccc[2] = {0x00, 0x00};
 
+/**
+ * @brief GATT attribute database for the Serial Port Profile (SPP) server.
+ *
+ * The array defines the attributes for the SPP GATT server, including service declaration,
+ * characteristics, and descriptors. Each entry in the array corresponds to a specific GATT attribute.
+ * The attributes are organized based on their role in the SPP GATT server.
+ */
 static const esp_gatts_attr_db_t spp_gatt_db[SPP_IDX_NB] =
 {
     // SPP -  Service Declaration
@@ -122,13 +116,19 @@ static const esp_gatts_attr_db_t spp_gatt_db[SPP_IDX_NB] =
     sizeof(uint16_t),sizeof(spp_status_ccc), (uint8_t *)spp_status_ccc}},
 };
 
+/**
+ * @brief Advertisement data for the Serial Port Profile (SPP) server.
+ *
+ * This array represents the advertising data, including flags, service UUIDs,
+ * and the local name for advertising the SPP server.
+ */
 static const uint8_t spp_adv_data[23] = {
     /* Flags */
     0x02,0x01,0x06,
     /* Complete List of 16-bit Service Class UUIDs */
     0x03,0x03,0xF0,0xAB,
     /* Complete Local Name in advertising */
-    0x0F,0x09, 'S', 'P', 'P', '_', 'S', 'E', 'R','V', 'E', 'R'
+    0x0A,0x09, 'P', 'M', '_', 'S', 'E', 'R','V', 'E', 'R'
 };
 
 static uint16_t spp_handle_table[SPP_IDX_NB];
@@ -140,23 +140,34 @@ static bool is_con =                    false;
 static esp_bd_addr_t spp_remote_bda =   {0x0,};
 static QueueHandle_t cmd_cmd_queue =    NULL;
 
-//Advertising parameters
+/**
+ * @brief Parameters for advertising the Serial Port Profile (SPP) server.
+ *
+ * These parameters define the settings for advertising the SPP server, including
+ * advertising interval, address type, and filter policy.
+ */
 static esp_ble_adv_params_t spp_adv_params = {
-    .adv_int_min        = 0x20,
-    .adv_int_max        = 0x40,
-    .adv_type           = ADV_TYPE_IND,
-    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
-    .channel_map        = ADV_CHNL_ALL,
-    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+    .adv_int_min        = 0x20,                                 // Minimum advertising interval
+    .adv_int_max        = 0x40,                                 // Maximum advertising interval
+    .adv_type           = ADV_TYPE_IND,                         // Advertising type: connectable, undirected advertising
+    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,                 // Address type of the advertising device
+    .channel_map        = ADV_CHNL_ALL,                         // Channel map for advertising
+    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,    // Advertising filter policy
 };
 
 static spp_receive_data_node_t * temp_spp_recv_data_node_p1 = NULL;
 static spp_receive_data_node_t * temp_spp_recv_data_node_p2 = NULL;
 
+/**
+ * @brief Structure to manage the receive data buffer for the Serial Port Profile (SPP) server.
+ *
+ * This structure maintains information about the receive data buffer, including the number
+ * of nodes, total buffer size, and a pointer to the first node.
+ */
 static spp_receive_data_buff_t SppRecvDataBuff = {
-    .node_num   = 0,
-    .buff_size  = 0,
-    .first_node = NULL
+    .node_num   = 0,          // Number of nodes in the buffer
+    .buff_size  = 0,          // Total size of the buffer
+    .first_node = NULL        // Pointer to the first node in the buffer
 };
 
 QueueHandle_t spp_uart_queue = NULL;
@@ -165,6 +176,15 @@ QueueHandle_t spp_uart_queue = NULL;
 // LOCAL FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Find the index of the characteristic or descriptor in the Serial Port Profile (SPP) handle table.
+ *
+ * This function searches for the given handle in the handle table and returns its corresponding index.
+ * If the handle is not found, it returns an error value (0xFF).
+ *
+ * @param handle The handle to search for in the handle table.
+ * @return The index of the handle in the table or an error value if not found.
+ */
 static uint8_t find_char_and_desr_index(uint16_t handle)
 {
     uint8_t error = 0xff;
@@ -178,6 +198,16 @@ static uint8_t find_char_and_desr_index(uint16_t handle)
     return error;
 }
 
+/**
+ * @brief Store received data in a buffer for later processing.
+ *
+ * This function allocates memory for a new node in the receive data buffer and stores
+ * the received data in that node. The function returns true on successful storage,
+ * and false if memory allocation fails.
+ *
+ * @param p_param Pointer to the GATT callback parameter structure containing write information.
+ * @return True if storage is successful, false if memory allocation fails.
+ */
 static bool store_wr_buffer(esp_ble_gatts_cb_param_t *p_param)
 {
     temp_spp_recv_data_node_p1 = (spp_receive_data_node_t *)malloc(sizeof(spp_receive_data_node_t));
@@ -219,6 +249,12 @@ static bool store_wr_buffer(esp_ble_gatts_cb_param_t *p_param)
     return true;
 }
 
+/**
+ * @brief Print the contents of the write buffer to UART.
+ *
+ * This function iterates through the nodes in the receive data buffer and writes
+ * the contents of each node to the UART.
+ */
 static void print_write_buffer(void)
 {
     temp_spp_recv_data_node_p1 = SppRecvDataBuff.first_node;
@@ -229,6 +265,12 @@ static void print_write_buffer(void)
     }
 }
 
+/**
+ * @brief Free the memory allocated for the write buffer.
+ *
+ * This function frees the memory allocated for each node in the receive data buffer,
+ * including the node buffers, and resets the buffer statistics.
+ */
 static void free_write_buffer(void)
 {
     temp_spp_recv_data_node_p1 = SppRecvDataBuff.first_node;
@@ -247,7 +289,162 @@ static void free_write_buffer(void)
     SppRecvDataBuff.first_node = NULL;
 }
 
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
+/**
+ * @brief UART task to handle UART events.
+ *
+ * This task waits for UART events and processes UART data events to send notifications
+ * to the GATT client when data is received on the UART interface. It handles the
+ * indication of received data, including segmentation for large data.
+ *
+ * @param[in] pvParameters  Task parameters (not used).
+ */
+static void uart_task(void *pvParameters)
+{
+    uart_event_t event;
+    uint8_t total_num = 0;
+    uint8_t current_num = 0;
+
+    for (;;) {
+        //Waiting for UART event.
+        if (xQueueReceive(spp_uart_queue, (void * )&event, (TickType_t)portMAX_DELAY)) 
+        {
+            switch (event.type) 
+            {
+            //Event of UART receving data
+            case UART_DATA:
+                if ((event.size)&&(is_con)) 
+                {
+                    uint8_t * temp = NULL;
+                    uint8_t * ntf_value_p = NULL;
+
+                    if(!enable_data_ntf)
+                    {
+                        ESP_LOGE(SPP_TAG, "Notify do not enable.");
+                        break;
+                    }
+                    temp = (uint8_t *)malloc(sizeof(uint8_t) * event.size);
+                    if(temp == NULL)
+                    {
+                        ESP_LOGE(SPP_TAG, "Malloc failed.");
+                        break;
+                    }
+                    memset(temp,0x0,event.size);
+                    uart_read_bytes(UART_NUM_0,temp,event.size,portMAX_DELAY);
+                    if(event.size <= (spp_mtu_size - 3))
+                    {
+                        esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL],event.size, temp, false);
+                    }else if(event.size > (spp_mtu_size - 3))
+                    {
+                        if((event.size%(spp_mtu_size - 7)) == 0)
+                        {
+                            total_num = event.size / (spp_mtu_size - 7);
+                        }else
+                        {
+                            total_num = event.size / (spp_mtu_size - 7) + 1;
+                        }
+                        current_num = 1;
+                        ntf_value_p = (uint8_t *)malloc((spp_mtu_size - 3) * sizeof(uint8_t));
+                        if(ntf_value_p == NULL)
+                        {
+                            ESP_LOGE(SPP_TAG, "Malloc failed.");
+                            free(temp);
+                            break;
+                        }
+                        while(current_num <= total_num)
+                        {
+                            if(current_num < total_num)
+                            {
+                                ntf_value_p[0] = '#';
+                                ntf_value_p[1] = '#';
+                                ntf_value_p[2] = total_num;
+                                ntf_value_p[3] = current_num;
+                                memcpy(ntf_value_p + 4,temp + (current_num - 1) * (spp_mtu_size - 7), (spp_mtu_size - 7));
+                                esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL], (spp_mtu_size-3), ntf_value_p, false);
+                            }else if(current_num == total_num)
+                            {
+                                ntf_value_p[0] = '#';
+                                ntf_value_p[1] = '#';
+                                ntf_value_p[2] = total_num;
+                                ntf_value_p[3] = current_num;
+                                memcpy(ntf_value_p + 4,temp + (current_num - 1) * (spp_mtu_size - 7), (event.size - (current_num - 1) * (spp_mtu_size - 7)));
+                                esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL], (event.size - (current_num - 1) * (spp_mtu_size - 7) + 4), ntf_value_p, false);
+                            }
+                            vTaskDelay(20 / portTICK_PERIOD_MS);
+                            current_num++;
+                        }
+                        free(ntf_value_p);
+                    }
+                    free(temp);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    vTaskDelete(NULL);
+}
+
+/**
+ * @brief Initialize UART for SPP application.
+ *
+ * This function configures the UART parameters and installs the UART driver.
+ * It sets the UART pins and creates a task (`uart_task`) to handle UART events.
+ */
+static void spp_uart_init(void)
+{
+    uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_RTS,
+        .rx_flow_ctrl_thresh = 122,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+
+    //Install UART driver, and get the queue.
+    uart_driver_install(UART_NUM_0, 4096, 8192, 10, &spp_uart_queue, 0);
+    //Set UART parameters
+    uart_param_config(UART_NUM_0, &uart_config);
+    //Set UART pins
+    uart_set_pin(UART_NUM_0, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    xTaskCreate(uart_task, "uTask", 2048, (void*)UART_NUM_0, 8, NULL);
+}
+
+/**
+ * @brief Task for processing SPP commands.
+ *
+ * This task processes SPP commands received from the command queue.
+ * It logs the received command and frees the allocated memory.
+ */
+static void spp_cmd_task(void * arg)
+{
+    uint8_t * cmd_id;
+
+    for(;;){
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+        if(xQueueReceive(cmd_cmd_queue, &cmd_id, portMAX_DELAY)) {
+            esp_log_buffer_char(SPP_TAG, (char*)(cmd_id), strlen((char*)cmd_id));
+            free(cmd_id);
+        }
+    }
+    vTaskDelete(NULL);
+}
+///////////////////////////////////////////////////////////////////////////////////
+// GLOBAL FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Event handler for GATT server events.
+ *
+ * This function processes GATT server events and delegates them to the corresponding profile instance's callback.
+ *
+ * @param[in] event GATT server event.
+ * @param[in] gatts_if GATT server interface.
+ * @param[in] param GATT server event parameters.
+ */
+void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
     esp_err_t error;
     esp_ble_gatts_cb_param_t *p_param = (esp_ble_gatts_cb_param_t *) param;
@@ -396,214 +593,11 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     }
 }
 
-static void uart_task(void *pvParameters)
-{
-    uart_event_t event;
-    uint8_t total_num = 0;
-    uint8_t current_num = 0;
-
-    for (;;) {
-        //Waiting for UART event.
-        if (xQueueReceive(spp_uart_queue, (void * )&event, (TickType_t)portMAX_DELAY)) 
-        {
-            switch (event.type) 
-            {
-            //Event of UART receving data
-            case UART_DATA:
-                if ((event.size)&&(is_con)) 
-                {
-                    uint8_t * temp = NULL;
-                    uint8_t * ntf_value_p = NULL;
-
-                    if(!enable_data_ntf)
-                    {
-                        ESP_LOGE(SPP_TAG, "Notify do not enable.");
-                        break;
-                    }
-                    temp = (uint8_t *)malloc(sizeof(uint8_t) * event.size);
-                    if(temp == NULL)
-                    {
-                        ESP_LOGE(SPP_TAG, "Malloc failed.");
-                        break;
-                    }
-                    memset(temp,0x0,event.size);
-                    uart_read_bytes(UART_NUM_0,temp,event.size,portMAX_DELAY);
-                    if(event.size <= (spp_mtu_size - 3))
-                    {
-                        esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL],event.size, temp, false);
-                    }else if(event.size > (spp_mtu_size - 3))
-                    {
-                        if((event.size%(spp_mtu_size - 7)) == 0)
-                        {
-                            total_num = event.size / (spp_mtu_size - 7);
-                        }else
-                        {
-                            total_num = event.size / (spp_mtu_size - 7) + 1;
-                        }
-                        current_num = 1;
-                        ntf_value_p = (uint8_t *)malloc((spp_mtu_size - 3) * sizeof(uint8_t));
-                        if(ntf_value_p == NULL)
-                        {
-                            ESP_LOGE(SPP_TAG, "Malloc failed.");
-                            free(temp);
-                            break;
-                        }
-                        while(current_num <= total_num)
-                        {
-                            if(current_num < total_num)
-                            {
-                                ntf_value_p[0] = '#';
-                                ntf_value_p[1] = '#';
-                                ntf_value_p[2] = total_num;
-                                ntf_value_p[3] = current_num;
-                                memcpy(ntf_value_p + 4,temp + (current_num - 1) * (spp_mtu_size - 7), (spp_mtu_size - 7));
-                                esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL], (spp_mtu_size-3), ntf_value_p, false);
-                            }else if(current_num == total_num)
-                            {
-                                ntf_value_p[0] = '#';
-                                ntf_value_p[1] = '#';
-                                ntf_value_p[2] = total_num;
-                                ntf_value_p[3] = current_num;
-                                memcpy(ntf_value_p + 4,temp + (current_num - 1) * (spp_mtu_size - 7), (event.size - (current_num - 1) * (spp_mtu_size - 7)));
-                                esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id, spp_handle_table[SPP_IDX_SPP_DATA_NTY_VAL], (event.size - (current_num - 1) * (spp_mtu_size - 7) + 4), ntf_value_p, false);
-                            }
-                            vTaskDelay(20 / portTICK_PERIOD_MS);
-                            current_num++;
-                        }
-                        free(ntf_value_p);
-                    }
-                    free(temp);
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
-    vTaskDelete(NULL);
-}
-
-static void spp_uart_init(void)
-{
-    uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_RTS,
-        .rx_flow_ctrl_thresh = 122,
-        .source_clk = UART_SCLK_DEFAULT,
-    };
-
-    //Install UART driver, and get the queue.
-    uart_driver_install(UART_NUM_0, 4096, 8192, 10, &spp_uart_queue, 0);
-    //Set UART parameters
-    uart_param_config(UART_NUM_0, &uart_config);
-    //Set UART pins
-    uart_set_pin(UART_NUM_0, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    xTaskCreate(uart_task, "uTask", 2048, (void*)UART_NUM_0, 8, NULL);
-}
-
-static void spp_cmd_task(void * arg)
-{
-    uint8_t * cmd_id;
-
-    for(;;){
-        vTaskDelay(50 / portTICK_PERIOD_MS);
-        if(xQueueReceive(cmd_cmd_queue, &cmd_id, portMAX_DELAY)) {
-            esp_log_buffer_char(SPP_TAG, (char*)(cmd_id), strlen((char*)cmd_id));
-            free(cmd_id);
-        }
-    }
-    vTaskDelete(NULL);
-}
-///////////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
-///////////////////////////////////////////////////////////////////////////////////
-
-void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
-{
-    esp_err_t error;
-    ESP_LOGE(GATT_TAG, "GATT_EVT, event %d, gatts if %d", event, gatts_if);
-
-    switch (event)
-    {
-    case ESP_GATTS_REG_EVT:
-        if (param->reg.status == ESP_GATT_OK)
-        {
-            spp_profile_tab[SPP_PROFILE_APP_IDX].gatts_if = gatts_if;
-        }
-        else
-        {
-            ESP_LOGI(GATT_TAG, "Reg app failed, app_id %04x, status %d",param->reg.app_id, param->reg.status);
-            return;
-        }
-        break;
-    case ESP_GATTS_READ_EVT:
-        break;
-    case ESP_GATTS_WRITE_EVT:
-        break;
-    case ESP_GATTS_EXEC_WRITE_EVT:
-        break;
-    case ESP_GATTS_MTU_EVT:
-        break;
-    case ESP_GATTS_CONF_EVT:
-        break;
-    case ESP_GATTS_UNREG_EVT:
-        break;
-    case ESP_GATTS_CREATE_EVT:
-        break;
-    case ESP_GATTS_ADD_INCL_SRVC_EVT:
-        break;
-    case ESP_GATTS_ADD_CHAR_EVT:
-        break;
-    case ESP_GATTS_ADD_CHAR_DESCR_EVT:
-        break;
-    case ESP_GATTS_DELETE_EVT:
-        break;
-    case ESP_GATTS_START_EVT:
-        break;
-    case ESP_GATTS_STOP_EVT:
-        break;
-    case ESP_GATTS_CONNECT_EVT:
-        break;
-    case ESP_GATTS_DISCONNECT_EVT:
-        break;   
-    case ESP_GATTS_OPEN_EVT:
-        break;
-    case ESP_GATTS_CANCEL_OPEN_EVT:
-        break;
-    case ESP_GATTS_CLOSE_EVT:
-        break;
-    case ESP_GATTS_LISTEN_EVT:
-        break;
-    case ESP_GATTS_CONGEST_EVT:
-        break;
-    case ESP_GATTS_RESPONSE_EVT:
-        break;
-    case ESP_GATTS_CREAT_ATTR_TAB_EVT:
-        break;
-    case ESP_GATTS_SET_ATTR_VAL_EVT:
-        break;
-    case ESP_GATTS_SEND_SERVICE_CHANGE_EVT:
-        break;       
-    default:
-        break;
-    }
-
-    int idx;
-    for (idx = 0; idx < SPP_PROFILE_NUM; idx++)
-    {
-        if (gatts_if == ESP_GATT_IF_NONE  || gatts_if == spp_profile_tab[idx].gatts_if)
-        {
-            if (spp_profile_tab[idx].gatts_cb)
-            {
-                spp_profile_tab[idx].gatts_cb(event, gatts_if, param);
-            }
-        }
-    }
-}
-
+/**
+ * @brief Initialize the SPP task.
+ *
+ * This function initializes the SPP task, including UART initialization and task creation for command handling.
+ */
 void spp_task_init(void)
 {
     spp_uart_init();

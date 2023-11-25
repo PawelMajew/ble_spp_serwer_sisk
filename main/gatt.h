@@ -26,7 +26,7 @@
 #define SPP_PROFILE_NUM     1
 #define SPP_PROFILE_APP_IDX 0
 
-#define DEVICE_NAME "SPP_SERVER"
+#define DEVICE_NAME "PM_SERVER"
 #define SPP_INST_ID 0
 
 #define ESP_SPP_APP_ID              0x56
@@ -42,39 +42,63 @@
 ///////////////////////////////////////////////////////////////////////////////////
 // DATA
 ///////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Structure representing a GATT Server profile instance.
+ */
 struct gatts_profile_inst {
-    esp_gatts_cb_t gatts_cb;
-    uint16_t gatts_if;
-    uint16_t app_id;
-    uint16_t conn_id;
-    uint16_t service_handle;
-    esp_gatt_srvc_id_t service_id;
-    uint16_t char_handle;
-    esp_bt_uuid_t char_uuid;
-    esp_gatt_perm_t perm;
-    esp_gatt_char_prop_t property;
-    uint16_t descr_handle;
-    esp_bt_uuid_t descr_uuid;
+    esp_gatts_cb_t gatts_cb;       /**< GATT Server callback function. */
+    uint16_t gatts_if;             /**< GATT Server interface. */
+    uint16_t app_id;               /**< Application ID. */
+    uint16_t conn_id;              /**< Connection ID. */
+    uint16_t service_handle;       /**< Service handle. */
+    esp_gatt_srvc_id_t service_id; /**< Service ID. */
+    uint16_t char_handle;          /**< Characteristic handle. */
+    esp_bt_uuid_t char_uuid;       /**< Characteristic UUID. */
+    esp_gatt_perm_t perm;          /**< Permissions for the characteristic. */
+    esp_gatt_char_prop_t property; /**< Properties of the characteristic. */
+    uint16_t descr_handle;         /**< Descriptor handle. */
+    esp_bt_uuid_t descr_uuid;      /**< Descriptor UUID. */
 };
 
-typedef struct spp_receive_data_node{
-    int32_t len;
-    uint8_t * node_buff;
-    struct spp_receive_data_node * next_node;
-}spp_receive_data_node_t;
+/**
+ * @brief Structure representing a node in the SPP receive data buffer.
+ */
+typedef struct spp_receive_data_node {
+    int32_t len;                                /**< Length of the data in the node. */
+    uint8_t *node_buff;                         /**< Pointer to the data buffer. */
+    struct spp_receive_data_node *next_node;    /**< Pointer to the next node in the buffer. */
+} spp_receive_data_node_t;
 
-typedef struct spp_receive_data_buff{
-    int32_t node_num;
-    int32_t buff_size;
-    spp_receive_data_node_t * first_node;
-}spp_receive_data_buff_t;
+/**
+ * @brief Structure to manage the buffer for receiving SPP data.
+ */
+typedef struct spp_receive_data_buff {
+    int32_t node_num;                       /**< Number of nodes in the buffer. */
+    int32_t buff_size;                      /**< Total size of the buffer. */
+    spp_receive_data_node_t *first_node;    /**< Pointer to the first node in the buffer. */
+} spp_receive_data_buff_t;
 
 ///////////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Event handler for GATT server events.
+ *
+ * This function processes GATT server events and delegates them to the corresponding profile instance's callback.
+ *
+ * @param[in] event GATT server event.
+ * @param[in] gatts_if GATT server interface.
+ * @param[in] param GATT server event parameters.
+ */
 void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 
+/**
+ * @brief Initialize the SPP task.
+ *
+ * This function initializes the SPP task, including UART initialization and task creation for command handling.
+ */
 void spp_task_init(void);
 
 #endif /* GATT_H */

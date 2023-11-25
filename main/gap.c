@@ -17,14 +17,19 @@
 // LOCAL DATA
 ///////////////////////////////////////////////////////////////////////////////////
 
-//Advertising parameters
+/**
+ * @brief Parameters for advertising the Serial Port Profile (SPP) server.
+ *
+ * These parameters define the settings for advertising the SPP server, including
+ * advertising interval, address type, and filter policy.
+ */
 static esp_ble_adv_params_t spp_adv_params = {
-    .adv_int_min        = 0x20,
-    .adv_int_max        = 0x40,
-    .adv_type           = ADV_TYPE_IND,
-    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
-    .channel_map        = ADV_CHNL_ALL,
-    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+    .adv_int_min        = 0x20,                                 // Minimum advertising interval
+    .adv_int_max        = 0x40,                                 // Maximum advertising interval
+    .adv_type           = ADV_TYPE_IND,                         // Advertising type: connectable, undirected advertising
+    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,                 // Address type of the advertising device
+    .channel_map        = ADV_CHNL_ALL,                         // Channel map for advertising
+    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,    // Advertising filter policy
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
